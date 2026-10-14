@@ -109,6 +109,8 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
             relevant if `config.is_decoder=True`.
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied.
+        pad_token_id (`int`, *optional*):
+            Padding token id for configurations that provide one.
         rope_theta (`float`, *optional*, defaults to 10000.0):
             The base period of the RoPE embeddings.
         rope_scaling (`Dict`, *optional*):
@@ -198,6 +200,7 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
         rms_norm_eps=0.000001,
         use_cache=True,
         tie_word_embeddings=False,
+        pad_token_id=None,
         rope_theta=10000,
         rope_scaling=None,
         attention_bias=False,
@@ -213,6 +216,8 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
             tie_word_embeddings=tie_word_embeddings,
             **kwargs,
         )
+        # Transformers 5.x no longer adds tokenizer IDs to PretrainedConfig by default.
+        self.pad_token_id = pad_token_id
         self.vocab_size = vocab_size
         self.max_position_embeddings = max_position_embeddings
         self.hidden_size = hidden_size
@@ -298,6 +303,8 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
             relevant if `config.is_decoder=True`.
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied.
+        pad_token_id (`int`, *optional*):
+            Padding token id for configurations that provide one.
         rope_theta (`float`, *optional*, defaults to 10000.0):
             The base period of the RoPE embeddings.
         rope_scaling (`Dict`, *optional*):
@@ -382,6 +389,7 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
         rms_norm_eps=0.000001,
         use_cache=True,
         tie_word_embeddings=False,
+        pad_token_id=None,
         rope_theta=10000,
         rope_scaling=None,
         attention_bias=False,
@@ -406,6 +414,8 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
             tie_word_embeddings=tie_word_embeddings,
             **kwargs,
         )
+        # Keep this available for model initialization on Transformers 5.x.
+        self.pad_token_id = pad_token_id
         self.vocab_size = vocab_size
         self.max_position_embeddings = max_position_embeddings
         self.hidden_size = hidden_size
