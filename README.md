@@ -105,7 +105,7 @@ huggingface-cli download Qwen/Qwen3-TTS-12Hz-0.6B-Base --local-dir ./Qwen3-TTS-1
 
 ### Environment Setup
 
-The easiest way to quickly use Qwen3-TTS is to install the `qwen-tts` Python package from PyPI. This will pull in the required runtime dependencies and allow you to load any released Qwen3-TTS model. We recommend using a **fresh, isolated environment** to avoid dependency conflicts with existing packages. You can create a clean Python 3.14 environment like this:
+The `qwen-tts` package supports Python 3.13 and later. We recommend using a **fresh, isolated environment** to avoid dependency conflicts with existing packages. For example, you can create a clean Python 3.14 environment like this:
 
 ```bash
 conda create -n qwen3-tts python=3.14 -y

@@ -7,9 +7,10 @@ name = "qwen-tts"
 version = "0.1.1"
 description = "Qwen-TTS python package"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 classifiers = [
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
 license = { text = "Apache-2.0" }
