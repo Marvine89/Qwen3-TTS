@@ -7,20 +7,16 @@ name = "qwen-tts"
 version = "0.1.1"
 description = "Qwen-TTS python package"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.14"
 classifiers = [
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 license = { text = "Apache-2.0" }
 authors = [{ name = "Alibaba Qwen Team" }]
 
 dependencies = [
-  "transformers==4.57.3",
+  "transformers==5.19.0",
   "accelerate==1.12.0",
   "gradio",
   "librosa",

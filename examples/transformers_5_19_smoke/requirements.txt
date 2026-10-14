@@ -1,0 +1,2 @@
+# Installs the local checkout, including its transformers==5.19.0 dependency.
+-e ../..

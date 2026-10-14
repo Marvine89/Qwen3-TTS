@@ -44,6 +44,7 @@ from transformers.utils import can_return_tuple, logging
 from transformers.utils.hub import cached_file
 
 from ...inference.qwen3_tts_tokenizer import Qwen3TTSTokenizer
+from ..rope_utils import compute_default_rope_parameters
 from .configuration_qwen3_tts import (Qwen3TTSConfig,
                                       Qwen3TTSSpeakerEncoderConfig,
                                       Qwen3TTSTalkerCodePredictorConfig,
@@ -535,9 +536,11 @@ class Qwen3TTSTalkerRotaryEmbedding(nn.Module):
         self.original_max_seq_len = config.max_position_embeddings
 
         self.config = config
-        self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
-
-        inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
+        if self.rope_type == "default":
+            inv_freq, self.attention_scaling = compute_default_rope_parameters(self.config, device)
+        else:
+            self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
+            inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
         self.register_buffer("inv_freq", inv_freq, persistent=False)
         self.original_inv_freq = self.inv_freq
 
@@ -570,9 +573,11 @@ class Qwen3TTSRotaryEmbedding(nn.Module):
         self.original_max_seq_len = config.max_position_embeddings
 
         self.config = config
-        self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
-
-        inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
+        if self.rope_type == "default":
+            inv_freq, self.attention_scaling = compute_default_rope_parameters(self.config, device)
+        else:
+            self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
+            inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
         self.register_buffer("inv_freq", inv_freq, persistent=False)
         self.original_inv_freq = self.inv_freq
 
@@ -1096,9 +1101,8 @@ class Qwen3TTSTalkerCodePredictorModel(Qwen3TTSPreTrainedModel):
             # Prepare mask arguments
             mask_kwargs = {
                 "config": self.config,
-                "input_embeds": inputs_embeds,
+                "inputs_embeds": inputs_embeds,
                 "attention_mask": attention_mask,
-                "cache_position": cache_position,
                 "past_key_values": past_key_values,
             }
             # Create the masks
@@ -1510,9 +1514,8 @@ class Qwen3TTSTalkerModel(Qwen3TTSTalkerTextPreTrainedModel):
         mask_function = create_causal_mask if self.config.sliding_window is None else create_sliding_window_causal_mask
         causal_mask = mask_function(
             config=self.config,
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
-            cache_position=cache_position,
             past_key_values=past_key_values,
             position_ids=text_position_ids,
         )

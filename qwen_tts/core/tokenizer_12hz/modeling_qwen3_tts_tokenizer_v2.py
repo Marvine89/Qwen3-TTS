@@ -39,8 +39,9 @@ from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
 from transformers.processing_utils import Unpack
 from transformers.utils import ModelOutput, auto_docstring, logging
 from transformers.utils.deprecation import deprecate_kwarg
-from transformers.utils.generic import check_model_inputs
+from transformers.utils.generic import merge_with_config_defaults
 
+from ..rope_utils import compute_default_rope_parameters
 from .configuration_qwen3_tts_tokenizer_v2 import (
     Qwen3TTSTokenizerV2Config,
     Qwen3TTSTokenizerV2DecoderConfig,
@@ -257,9 +258,11 @@ class Qwen3TTSTokenizerV2DecoderRotatoryEmbedding(nn.Module):
         self.original_max_seq_len = config.max_position_embeddings
 
         self.config = config
-        self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
-
-        inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
+        if self.rope_type == "default":
+            inv_freq, self.attention_scaling = compute_default_rope_parameters(self.config, device)
+        else:
+            self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
+            inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
         self.register_buffer("inv_freq", inv_freq, persistent=False)
         self.original_inv_freq = self.inv_freq
 
@@ -496,8 +499,13 @@ class Qwen3TTSTokenizerV2DecoderTransformerModel(Qwen3TTSTokenizerV2DecoderPreTr
         # Initialize weights and apply final processing
         self.post_init()
 
-    @check_model_inputs()
-    @auto_docstring
+    @merge_with_config_defaults
+    @auto_docstring(
+        custom_args=r"""
+        cache_position (`torch.LongTensor` of shape `(sequence_length)`, *optional*):
+            Positions of the input tokens in the sequence, used to update cached key/value states at the right positions.
+        """
+    )
     def forward(
         self,
         input_ids=None,
@@ -536,9 +544,8 @@ class Qwen3TTSTokenizerV2DecoderTransformerModel(Qwen3TTSTokenizerV2DecoderPreTr
             # Prepare mask arguments
             mask_kwargs = {
                 "config": self.config,
-                "input_embeds": inputs_embeds,
+                "inputs_embeds": inputs_embeds,
                 "attention_mask": attention_mask,
-                "cache_position": cache_position,
                 "past_key_values": past_key_values,
                 "position_ids": position_ids,
             }
