@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from transformers.configuration_utils import PretrainedConfig, layer_type_validation
-from transformers.modeling_rope_utils import rope_config_validation
+from transformers.configuration_utils import PretrainedConfig
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -110,6 +109,8 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
             relevant if `config.is_decoder=True`.
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied.
+        pad_token_id (`int`, *optional*):
+            Padding token id for configurations that provide one.
         rope_theta (`float`, *optional*, defaults to 10000.0):
             The base period of the RoPE embeddings.
         rope_scaling (`Dict`, *optional*):
@@ -199,6 +200,7 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
         rms_norm_eps=0.000001,
         use_cache=True,
         tie_word_embeddings=False,
+        pad_token_id=None,
         rope_theta=10000,
         rope_scaling=None,
         attention_bias=False,
@@ -214,6 +216,8 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
             tie_word_embeddings=tie_word_embeddings,
             **kwargs,
         )
+        # Transformers 5.x no longer adds tokenizer IDs to PretrainedConfig by default.
+        self.pad_token_id = pad_token_id
         self.vocab_size = vocab_size
         self.max_position_embeddings = max_position_embeddings
         self.hidden_size = hidden_size
@@ -242,7 +246,8 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
         # BC: if there is a 'type' field, move it to 'rope_type'.
         if self.rope_scaling is not None and "type" in self.rope_scaling:
             self.rope_scaling["rope_type"] = self.rope_scaling["type"]
-        rope_config_validation(self)
+        self.standardize_rope_params()
+        self.validate_rope()
 
         self.layer_types = layer_types
         if self.layer_types is None:
@@ -252,7 +257,7 @@ class Qwen3TTSTalkerCodePredictorConfig(PretrainedConfig):
                 else "full_attention"
                 for i in range(self.num_hidden_layers)
             ]
-        layer_type_validation(self.layer_types)
+        self.validate_layer_type()
         self.num_code_groups = num_code_groups
 
 
@@ -298,6 +303,8 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
             relevant if `config.is_decoder=True`.
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied.
+        pad_token_id (`int`, *optional*):
+            Padding token id for configurations that provide one.
         rope_theta (`float`, *optional*, defaults to 10000.0):
             The base period of the RoPE embeddings.
         rope_scaling (`Dict`, *optional*):
@@ -382,6 +389,7 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
         rms_norm_eps=0.000001,
         use_cache=True,
         tie_word_embeddings=False,
+        pad_token_id=None,
         rope_theta=10000,
         rope_scaling=None,
         attention_bias=False,
@@ -406,6 +414,8 @@ class Qwen3TTSTalkerConfig(PretrainedConfig):
             tie_word_embeddings=tie_word_embeddings,
             **kwargs,
         )
+        # Keep this available for model initialization on Transformers 5.x.
+        self.pad_token_id = pad_token_id
         self.vocab_size = vocab_size
         self.max_position_embeddings = max_position_embeddings
         self.hidden_size = hidden_size
