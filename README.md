@@ -1,4 +1,43 @@
-# Qwen3-TTS
+# Qwen3-TTS — Transformers 5 and Python 3.14 Compatible Version
+
+## Compatibility update and validation
+
+This checkout was updated to the requested latest target, **Transformers
+5.19.0**, and was exercised with **Python 3.14.8**. The package metadata
+requires Python 3.13 or later, and the smoke-test environment used Python 3.14.
+The Transformers dependency is pinned to `transformers==5.19.0` so the
+compatibility test runs against the intended version.
+
+The validation uses the released **Qwen3-TTS-12Hz-0.6B-CustomVoice** model and
+the public `Qwen3TTSModel.from_pretrained(...)` loading path. It loads the model,
+generates English speech, writes a WAV file, checks that the samples and sample
+rate are valid, then transcribes the generated audio with Whisper Tiny. The
+transcription is compared with the requested sentence using word error rate
+(WER), with a maximum allowed WER of 25%. This checks the spoken content as well
+as whether model loading and audio generation complete successfully.
+
+The compatibility fix addresses rotary positional embeddings (RoPE) during
+Transformers 5.19.0 model loading. The loader can construct modules on the
+`meta` device before checkpoint weights are materialized. The model's default
+RoPE inverse-frequency buffer is non-persistent, so it is not restored from the
+checkpoint; after materialization it could therefore contain zeros. That
+disabled rotary positions and produced distorted, incorrect speech. The Qwen3-TTS
+code now initializes the default RoPE parameters on the model's active device
+before they are first used, including the talker and tokenizer decoder paths.
+The default RoPE calculation also accounts for `partial_rotary_factor`.
+
+The end-to-end run with a fixed seed generated **3.28 seconds of 24 kHz audio**.
+Whisper Tiny transcribed it as “Good morning. The weather is sunny today.”,
+matching the requested sentence exactly (**0% WER**). The generated waveform
+also matched the working Transformers 4.57.3 baseline sample-for-sample for the
+same prompt and seed. This confirms that the 5.19.0 loading change no longer
+alters the speech output in this tested CPU configuration.
+
+The test machine had an Apple M-series-capable PyTorch build, but MPS was not
+available to the test process, so these results validate CPU inference only.
+They do not establish MPS behavior on an M1 Max. To reproduce the automated
+check, follow the instructions in
+[`examples/transformers_5_19_smoke/README.md`](examples/transformers_5_19_smoke/README.md).
 
 <br>
 
