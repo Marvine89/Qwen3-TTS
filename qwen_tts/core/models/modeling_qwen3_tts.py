@@ -44,7 +44,10 @@ from transformers.utils import can_return_tuple, logging
 from transformers.utils.hub import cached_file
 
 from ...inference.qwen3_tts_tokenizer import Qwen3TTSTokenizer
-from ..rope_utils import compute_default_rope_parameters
+from ..rope_utils import (
+    compute_default_rope_parameters,
+    initialize_default_rope_parameters,
+)
 from .configuration_qwen3_tts import (Qwen3TTSConfig,
                                       Qwen3TTSSpeakerEncoderConfig,
                                       Qwen3TTSTalkerCodePredictorConfig,
@@ -547,6 +550,7 @@ class Qwen3TTSTalkerRotaryEmbedding(nn.Module):
     @torch.no_grad()
     @dynamic_rope_update  # power user: used with advanced RoPE types (e.g. dynamic rope)
     def forward(self, x, position_ids):
+        initialize_default_rope_parameters(self, x.device)
         # In contrast to other models, Qwen3TTSThinkerText has different position ids for the grids
         # So we expand the inv_freq to shape (3, ...)
         inv_freq_expanded = self.inv_freq[None, None, :, None].float().expand(3, position_ids.shape[1], -1, 1)
@@ -584,6 +588,7 @@ class Qwen3TTSRotaryEmbedding(nn.Module):
     @torch.no_grad()
     @dynamic_rope_update  # power user: used with advanced RoPE types (e.g. dynamic rope)
     def forward(self, x, position_ids):
+        initialize_default_rope_parameters(self, x.device)
         inv_freq_expanded = self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1).to(x.device)
         position_ids_expanded = position_ids[:, None, :].float()
 

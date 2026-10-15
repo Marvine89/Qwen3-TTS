@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 from pathlib import Path
 
 import numpy as np
@@ -78,12 +79,54 @@ def parse_args() -> argparse.Namespace:
         help="Maximum generated audio tokens (default: 256)",
     )
     parser.add_argument(
+        "--asr-model",
+        default=os.environ.get("QWEN3_TTS_ASR_MODEL", "openai/whisper-tiny"),
+        help="Speech recognition model used to check the spoken words",
+    )
+    parser.add_argument(
+        "--asr-language",
+        default="en",
+        help="Whisper language code used for transcription (default: en)",
+    )
+    parser.add_argument(
+        "--expected-text",
+        default=None,
+        help="Expected spoken text (defaults to --text)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for repeatable audio generation (default: 42)",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("smoke_test_output.wav"),
         help="Destination WAV path (default: smoke_test_output.wav)",
     )
     return parser.parse_args()
+
+
+def word_error_rate(expected: str, actual: str) -> float:
+    expected_words = re.findall(r"[a-z0-9']+", expected.lower())
+    actual_words = re.findall(r"[a-z0-9']+", actual.lower())
+    if not expected_words:
+        raise ValueError("Expected text must contain at least one word")
+
+    previous = list(range(len(actual_words) + 1))
+    for row, expected_word in enumerate(expected_words, start=1):
+        current = [row]
+        for column, actual_word in enumerate(actual_words, start=1):
+            current.append(
+                min(
+                    current[-1] + 1,
+                    previous[column] + 1,
+                    previous[column - 1] + (expected_word != actual_word),
+                )
+            )
+        previous = current
+    return previous[-1] / len(expected_words)
 
 
 def main() -> None:
@@ -100,6 +143,7 @@ def main() -> None:
     dtype = choose_dtype(args.dtype, device)
     print(f"Transformers: {transformers.__version__}")
     print(f"Loading {args.model} on {device} with {dtype}...")
+    torch.manual_seed(args.seed)
 
     load_kwargs = {"device_map": device, "dtype": dtype}
     if args.attn_implementation:
@@ -138,6 +182,29 @@ def main() -> None:
         f"PASS: generated {duration:.2f}s of audio at {sample_rate} Hz; "
         f"saved {output}"
     )
+
+    from transformers import pipeline
+
+    transcriber = pipeline(
+        "automatic-speech-recognition",
+        model=args.asr_model,
+        device=-1,
+    )
+    transcription = transcriber(
+        {"raw": audio, "sampling_rate": int(sample_rate)},
+        generate_kwargs={"language": args.asr_language, "task": "transcribe"},
+    )["text"].strip()
+    expected_text = args.expected_text or args.text
+    error_rate = word_error_rate(expected_text, transcription)
+    print(f"Expected speech: {expected_text}")
+    print(f"Recognized speech: {transcription}")
+    print(f"Word error rate: {error_rate:.0%}")
+    if error_rate > 0.25:
+        raise RuntimeError(
+            "Audio transcription did not match the requested text closely enough "
+            f"(word error rate {error_rate:.0%}; limit 25%)"
+        )
+    print("PASS: generated audio speaks the expected text")
 
 
 if __name__ == "__main__":

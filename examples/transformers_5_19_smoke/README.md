@@ -3,10 +3,11 @@
 This small project runs the [Qwen3-TTS custom voice example](https://github.com/QwenLM/Qwen3-TTS)
 against the checkout that contains the Transformers 5.19.0 compatibility changes. It loads
 the 0.6B CustomVoice checkpoint with `Qwen3TTSModel.from_pretrained`, generates
-a short English sample, checks the returned audio, and writes a WAV file.
+a short English sample, checks the returned audio, transcribes it with Whisper Tiny,
+and fails if the recognized words do not closely match the requested text.
 
-The first run downloads the model weights from Hugging Face. The model and
-device can be changed with command-line options.
+The first run downloads the Qwen model and Whisper Tiny from Hugging Face. Both
+models and the device can be changed with command-line options.
 
 ## Run
 
@@ -30,5 +31,9 @@ python smoke_test.py --device cuda:0 --model Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoic
 
 The output defaults to `smoke_test_output.wav` in the current directory. A
 successful run exits with status 0 and prints the Transformers version, model,
-sample rate, audio duration, and output path. It exits with an error if
-Transformers is not exactly 5.19.0 or if generation returns invalid audio.
+sample rate, audio duration, transcript, and word error rate. It exits with an
+error if Transformers is not exactly 5.19.0, generation returns invalid audio,
+or the transcript differs from the requested text by more than 25% word error.
+Use `--seed` to make generation repeatable, `--asr-model` to select a different
+speech recognition model, and `--expected-text` when the spoken wording differs
+from the synthesis prompt.

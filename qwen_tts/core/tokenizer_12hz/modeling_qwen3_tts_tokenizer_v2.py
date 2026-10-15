@@ -41,7 +41,10 @@ from transformers.utils import ModelOutput, auto_docstring, logging
 from transformers.utils.deprecation import deprecate_kwarg
 from transformers.utils.generic import merge_with_config_defaults
 
-from ..rope_utils import compute_default_rope_parameters
+from ..rope_utils import (
+    compute_default_rope_parameters,
+    initialize_default_rope_parameters,
+)
 from .configuration_qwen3_tts_tokenizer_v2 import (
     Qwen3TTSTokenizerV2Config,
     Qwen3TTSTokenizerV2DecoderConfig,
@@ -269,6 +272,7 @@ class Qwen3TTSTokenizerV2DecoderRotatoryEmbedding(nn.Module):
     @torch.no_grad()
     @dynamic_rope_update  # power user: used with advanced RoPE types (e.g. dynamic rope)
     def forward(self, x, position_ids):
+        initialize_default_rope_parameters(self, x.device)
         inv_freq_expanded = self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1).to(x.device)
         position_ids_expanded = position_ids[:, None, :].float()
 
